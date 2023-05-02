@@ -10,11 +10,6 @@ func (b *bitIndex) set(n byte) {
 	b[hi] = b[hi] | (1 << lo)
 }
 
-func (b *bitIndex) unset(n byte) {
-	hi, lo := b.splitN(n)
-	b[hi] = b[hi] & ^(1 << lo)
-}
-
 func (b *bitIndex) isSet(n byte) bool {
 	hi, lo := b.splitN(n)
 

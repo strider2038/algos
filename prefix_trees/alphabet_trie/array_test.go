@@ -9,8 +9,6 @@ import (
 	"github.com/strider2038/algos/testdata/fixtures"
 )
 
-var testChars = []rune("abcdefghijklmnopqrstuvwxyz")
-
 func TestArray64_Basic(t *testing.T) {
 	items := alphabet_trie.NewArray64[int]("abcdefghijklmnopqrstuvwxyz")
 

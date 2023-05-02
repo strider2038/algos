@@ -107,7 +107,7 @@ func TestArray_Put_Countries(t *testing.T) {
 		m[country] = i + 1
 	}
 
-	countries.Walk(func(key []byte, value int) error {
+	_ = countries.Walk(func(key []byte, value int) error {
 		assert.Equal(t, m[string(key)], value)
 
 		return nil

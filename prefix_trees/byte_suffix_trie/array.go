@@ -47,8 +47,8 @@ func (array *Array[V]) Find(key []byte) (V, bool) {
 		node = node.child(k)
 	}
 
-	if node.value != nil {
-		return *node.value, true
+	if node.present {
+		return node.value, true
 	}
 
 	return zero, false
@@ -95,11 +95,12 @@ func (array *Array[V]) Put(key []byte, value V) {
 
 	// если такого элемента еще не существовало в дереве, то
 	// увеличиваем счетчик количества элементов
-	if node.value == nil {
+	if !node.present {
 		array.count++
 	}
 
-	node.value = &value
+	node.present = true
+	node.value = value
 }
 
 // Delete удаляет значение из ассоциативного массива. Реализовано в виде
@@ -124,12 +125,12 @@ func (array *Array[V]) Delete(key []byte) {
 	}
 
 	// если значение установлено для узла, то уменьшаем счетчик количества элементов
-	if node.value != nil {
+	if node.present {
 		array.count--
 	}
 
-	// удаляем ссылку на значение
-	node.value = nil
+	// сбрасываем флаг присутствия
+	node.present = false
 }
 
 // Walk перебирает дерево и для каждого существующего узла вызывает функцию f.
@@ -171,6 +172,8 @@ func (array Array[V]) MarshalJSON() ([]byte, error) {
 }
 
 type arrayNode[V any] struct {
+	// Флаг наличия значения
+	present bool
 	// Символ
 	k byte
 	// Суффикс ключа
@@ -180,7 +183,7 @@ type arrayNode[V any] struct {
 	// Массив нижележащих узлов переменной длины (на основе слайса)
 	children []arrayNode[V]
 	// Ссылка на значение ассоциативного массива
-	value *V
+	value V
 }
 
 // child - по значению байта находим индекс следующего подузла дерева
@@ -222,7 +225,7 @@ func (node *arrayNode[V]) splitBranch(key []byte, offset int) (*arrayNode[V], in
 	suffix := currentNode.suffix
 
 	// в разделяемом узле удаляем значение и суффикс
-	currentNode.value = nil
+	currentNode.present = false
 	currentNode.suffix = nil
 
 	// создаем пересекающуюся по префиксу ветвь дерева
@@ -233,11 +236,13 @@ func (node *arrayNode[V]) splitBranch(key []byte, offset int) (*arrayNode[V], in
 
 	if j >= len(suffix) {
 		// переносим значение в конец ветви (если был последний узел)
+		currentNode.present = true
 		currentNode.value = nodeValue
 	} else {
 		// вставляем конечный узел с оставшейся частью суффикса в старую ветвь
 		n := currentNode.insert(suffix[j], suffix[j+1:])
 		n.k = suffix[j]
+		n.present = true
 		n.value = nodeValue
 	}
 
@@ -251,19 +256,20 @@ func (node *arrayNode[V]) forkSuffix() {
 	suffix := node.suffix
 
 	// в разделяемом узле удаляем значение и суффикс
-	node.value = nil
+	node.present = false
 	node.suffix = nil
 
 	n := node.insert(suffix[0], suffix[1:])
 	n.k = suffix[0]
+	n.present = true
 	n.value = nodeValue
 }
 
 func (node *arrayNode[V]) walk(key []byte, f func(key []byte, value V) error) error {
 	for _, child := range node.children {
 		k := append(key, child.k)
-		if child.value != nil {
-			if err := f(append(k, child.suffix...), *child.value); err != nil {
+		if child.present {
+			if err := f(append(k, child.suffix...), child.value); err != nil {
 				return err
 			}
 		}
