@@ -138,6 +138,31 @@ func (array *Array[V]) Walk(f func(key []byte, value V) error) error {
 	return array.root.walk(nil, f)
 }
 
+// WalkPrefix перебирает дерево начиная с указанного префикса
+// и для каждого существующего узла вызывает функцию f.
+func (array *Array[V]) WalkPrefix(prefix []byte, f func(key []byte, value V) error) error {
+	node := &array.root
+
+	i := 0
+	for ; i < len(prefix); i++ {
+		k := prefix[i]
+		// если индекс отсутствует в маске, то сверяем суффикс
+		if !node.bits.isSet(k) {
+			// если суффикс идентичен, то узел найден
+			if bytes.Equal(prefix[i:], node.suffix[:len(prefix)-i]) {
+				break
+			}
+
+			// такого элемента нет в дереве
+			return nil
+		}
+		// по значению байта находим индекс следующего подузла дерева
+		node = node.child(k)
+	}
+
+	return node.walk(prefix[:i], f)
+}
+
 func (array Array[V]) MarshalJSON() ([]byte, error) {
 	var data bytes.Buffer
 	data.WriteRune('{')
@@ -266,13 +291,14 @@ func (node *arrayNode[V]) forkSuffix() {
 }
 
 func (node *arrayNode[V]) walk(key []byte, f func(key []byte, value V) error) error {
+	if node.present {
+		if err := f(append(key, node.suffix...), node.value); err != nil {
+			return err
+		}
+	}
+
 	for _, child := range node.children {
 		k := append(key, child.k)
-		if child.present {
-			if err := f(append(k, child.suffix...), child.value); err != nil {
-				return err
-			}
-		}
 		if err := child.walk(k, f); err != nil {
 			return err
 		}

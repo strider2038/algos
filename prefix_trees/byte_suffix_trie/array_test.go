@@ -3,6 +3,9 @@ package byte_suffix_trie_test
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -157,6 +160,117 @@ func TestArray_MarshalJSON(t *testing.T) {
 	}
 
 	assert.JSONEq(t, `{"alpha":1,"beta":2,"delta":4,"gamma":3}`, string(data))
+}
+
+func TestArray_WalkPrefix(t *testing.T) {
+	tests := []struct {
+		name   string
+		values []string
+		prefix string
+		want   []string
+	}{
+		{
+			name:   "single value",
+			values: []string{"foo"},
+			prefix: "fo",
+			want:   []string{"foo"},
+		},
+		{
+			name:   "not existing prefix",
+			values: []string{"foo"},
+			prefix: "fos",
+			want:   []string{},
+		},
+		{
+			name:   "no suffixes",
+			values: []string{"cat", "cap", "car", "foo", "bar"},
+			prefix: "ca",
+			want:   []string{"cap", "car", "cat"},
+		},
+		{
+			name:   "empty prefix",
+			values: []string{"cat", "cap", "car", "foo", "bar"},
+			prefix: "",
+			want:   []string{"bar", "cap", "car", "cat", "foo"},
+		},
+		{
+			name: "suffix case",
+			values: []string{
+				"capacity",
+			},
+			prefix: "cap",
+			want:   []string{"capacity"},
+		},
+		{
+			name: "case 1",
+			values: []string{
+				"QtGgCdh8S",
+				"QjelrTqoqGZV",
+				"QNaEhkK9E",
+				"Q1iq coOLuBe5c",
+				"GQE9WruzR1p8",
+			},
+			prefix: "Qj",
+			want:   []string{"QjelrTqoqGZV"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tree := byte_suffix_trie.Array[int]{}
+			for i, value := range test.values {
+				tree.Put([]byte(value), i)
+			}
+
+			got := make([]string, 0)
+			_ = tree.WalkPrefix([]byte(test.prefix), func(key []byte, value int) error {
+				got = append(got, string(key))
+				return nil
+			})
+			assert.Equal(t, test.want, got)
+		})
+	}
+}
+
+func TestArray_WalkPrefix_Random(t *testing.T) {
+	const (
+		itemsCount = 10_000
+		testCount  = 100
+	)
+	tree := byte_suffix_trie.Array[int]{}
+	m := map[string]int{}
+	ss := randomStrings(15, itemsCount)
+	for i, s := range ss {
+		tree.Put([]byte(s), i)
+		m[s] = i
+	}
+
+	for i := 0; i < testCount; i++ {
+		s := ""
+		for key := range m {
+			s = key
+			break
+		}
+		prefix := s[:rand.Intn(len(s))]
+		t.Run(prefix, func(t *testing.T) {
+			got := make([]string, 0)
+			_ = tree.WalkPrefix([]byte(prefix), func(key []byte, value int) error {
+				got = append(got, string(key))
+				return nil
+			})
+
+			want := make([]string, 0)
+			for key := range m {
+				if strings.HasPrefix(key, prefix) {
+					want = append(want, key)
+				}
+			}
+			sort.Slice(want, func(i, j int) bool {
+				return want[i] < want[j]
+			})
+
+			assert.Equal(t, want, got)
+		})
+	}
 }
 
 func BenchmarkArray64_Fill(b *testing.B) {
