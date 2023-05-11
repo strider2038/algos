@@ -10,11 +10,7 @@ import (
 )
 
 func TestTree_Filter(t *testing.T) {
-	_, filename, _, _ := runtime.Caller(0)
-	tree, err := simple_search.LoadFromFile(filepath.Dir(filename) + "/../../testdata/classifiers/okved.csv")
-	if err != nil {
-		t.Fatal("load okved:", err)
-	}
+	tree := loadTree(t)
 
 	tests := []struct {
 		name   string
@@ -22,9 +18,24 @@ func TestTree_Filter(t *testing.T) {
 		want   []string
 	}{
 		{
-			name:   "basic",
-			search: "выращиван",
+			name:   "top node filter, single word",
+			search: "рыболовство",
 			want:   []string{"A"},
+		},
+		{
+			name:   "deep node filter, single word",
+			search: "картофел",
+			want:   []string{"A", "C", "G"},
+		},
+		{
+			name:   "deep node filter, single word with stemming",
+			search: "картофель",
+			want:   []string{"A", "C", "G"},
+		},
+		{
+			name:   "deep node filter, many words",
+			search: "Деятельность прочих общественных и прочих некоммерческих организаций, кроме религиозных и политических организаций, не включенных в другие группировки",
+			want:   []string{"S"},
 		},
 	}
 	for _, test := range tests {
@@ -38,4 +49,48 @@ func TestTree_Filter(t *testing.T) {
 			assert.Equal(t, test.want, codes)
 		})
 	}
+}
+
+func BenchmarkTree_Filter(b *testing.B) {
+	tree := loadTree(b)
+
+	benchmarks := []struct {
+		name   string
+		search string
+	}{
+		{
+			name:   "top node filter, single word",
+			search: "рыболовство",
+		},
+		{
+			name:   "deep node filter, single word",
+			search: "картофел",
+		},
+		{
+			name:   "deep node filter, single word with stemming",
+			search: "картофель",
+		},
+		{
+			name:   "deep node filter, many words",
+			search: "Деятельность прочих общественных и прочих некоммерческих организаций, кроме религиозных и политических организаций, не включенных в другие группировки",
+		},
+	}
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				tree.Filter(bm.search)
+			}
+		})
+	}
+}
+
+func loadTree(tb testing.TB) *simple_search.Tree {
+	_, filename, _, _ := runtime.Caller(0)
+	tree, err := simple_search.LoadFromFile(filepath.Dir(filename) + "/../../testdata/classifiers/okved.csv")
+	if err != nil {
+		tb.Fatal("load okved:", err)
+	}
+
+	return tree
 }

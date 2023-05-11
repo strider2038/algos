@@ -1,6 +1,10 @@
 package simple_search
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/kljensen/snowball/russian"
+)
 
 type Classifier struct {
 	Code  string
@@ -23,6 +27,9 @@ func (t *Tree) FindByCode(code string) (*Node, bool) {
 
 func (t *Tree) Filter(search string) []*Node {
 	tokens := strings.Split(strings.ToLower(search), " ")
+	for i := range tokens {
+		tokens[i] = russian.Stem(tokens[i], true)
+	}
 
 	nodes := make([]*Node, 0)
 	for _, node := range t.Nodes {
