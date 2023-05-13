@@ -1,4 +1,4 @@
-package simple_search_test
+package bitset_search_test
 
 import (
 	"path/filepath"
@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/strider2038/algos/search_in_trees/simple_search"
+	"github.com/strider2038/algos/search_in_trees/bitset_search"
 	"github.com/strider2038/algos/search_in_trees/testcases"
 )
 
 func TestTree_Filter(t *testing.T) {
 	tree := loadTree(t)
 
-	for _, test := range testcases.SimpleCases {
+	for _, test := range testcases.PrefixCases {
 		t.Run(test.Name, func(t *testing.T) {
 			nodes := tree.Filter(test.Search)
 
@@ -29,7 +29,7 @@ func TestTree_Filter(t *testing.T) {
 func BenchmarkTree_Filter(b *testing.B) {
 	tree := loadTree(b)
 
-	for _, bm := range testcases.SimpleCases {
+	for _, bm := range testcases.PrefixCases {
 		b.Run(bm.Name, func(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
@@ -39,9 +39,9 @@ func BenchmarkTree_Filter(b *testing.B) {
 	}
 }
 
-func loadTree(tb testing.TB) *simple_search.Tree {
+func loadTree(tb testing.TB) *bitset_search.Tree {
 	_, filename, _, _ := runtime.Caller(0)
-	tree, err := simple_search.LoadFromFile(filepath.Dir(filename) + "/../../testdata/classifiers/okved.csv")
+	tree, err := bitset_search.LoadFromFile(filepath.Dir(filename) + "/../../testdata/classifiers/okved.csv")
 	if err != nil {
 		tb.Fatal("load okved:", err)
 	}

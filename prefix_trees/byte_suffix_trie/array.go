@@ -149,7 +149,7 @@ func (array *Array[V]) WalkPrefix(prefix []byte, f func(key []byte, value V) err
 		// если индекс отсутствует в маске, то сверяем суффикс
 		if !node.bits.isSet(k) {
 			// если суффикс идентичен, то узел найден
-			if bytes.Equal(prefix[i:], node.suffix[:len(prefix)-i]) {
+			if bytes.Equal(prefix[i:], node.suffix[:min(len(node.suffix), len(prefix)-i)]) {
 				break
 			}
 
@@ -305,4 +305,12 @@ func (node *arrayNode[V]) walk(key []byte, f func(key []byte, value V) error) er
 	}
 
 	return nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
 }

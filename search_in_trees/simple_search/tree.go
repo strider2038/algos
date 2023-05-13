@@ -26,14 +26,14 @@ func (t *Tree) FindByCode(code string) (*Node, bool) {
 }
 
 func (t *Tree) Filter(search string) []*Node {
-	tokens := strings.Split(strings.ToLower(search), " ")
-	for i := range tokens {
-		tokens[i] = russian.Stem(tokens[i], true)
+	keywords := strings.Split(strings.ToLower(search), " ")
+	for i := range keywords {
+		keywords[i] = russian.Stem(keywords[i], true)
 	}
 
 	nodes := make([]*Node, 0)
 	for _, node := range t.Nodes {
-		if node.contains(tokens) {
+		if node.contains(keywords) {
 			nodes = append(nodes, &Node{Value: node.Value})
 		}
 	}
@@ -60,13 +60,13 @@ func (n *Node) findByCode(code string) (*Node, bool) {
 	return nil, false
 }
 
-func (n *Node) contains(tokens []string) bool {
-	if contains(n.Value.Title, tokens) {
+func (n *Node) contains(keywords []string) bool {
+	if contains(n.Value.Title, keywords) {
 		return true
 	}
 
 	for _, child := range n.Children {
-		if child.contains(tokens) {
+		if child.contains(keywords) {
 			return true
 		}
 	}
@@ -74,11 +74,11 @@ func (n *Node) contains(tokens []string) bool {
 	return false
 }
 
-func contains(s string, tokens []string) bool {
+func contains(s string, keywords []string) bool {
 	s = strings.ToLower(s)
 
-	for _, token := range tokens {
-		if !strings.Contains(s, token) {
+	for _, keyword := range keywords {
+		if !strings.Contains(s, keyword) {
 			return false
 		}
 	}

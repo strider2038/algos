@@ -188,6 +188,12 @@ func TestArray_WalkPrefix(t *testing.T) {
 			want:   []string{"cap", "car", "cat"},
 		},
 		{
+			name:   "too long prefix",
+			values: []string{"cap", "car", "cat"},
+			prefix: "catapult",
+			want:   []string{},
+		},
+		{
 			name:   "empty prefix",
 			values: []string{"cat", "cap", "car", "foo", "bar"},
 			prefix: "",
