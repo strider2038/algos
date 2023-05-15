@@ -41,6 +41,15 @@ func (t *Tree) Filter(search string) []*Node {
 	return nodes
 }
 
+func (t *Tree) Bytes() int {
+	s := 0
+	for _, node := range t.Nodes {
+		s += node.bytes()
+	}
+
+	return s
+}
+
 type Node struct {
 	Value    Classifier
 	Children []*Node
@@ -72,6 +81,15 @@ func (n *Node) contains(keywords []string) bool {
 	}
 
 	return false
+}
+
+func (n *Node) bytes() int {
+	s := 0
+	for _, child := range n.Children {
+		s += child.bytes()
+	}
+
+	return s + len(n.Value.Code) + len(n.Value.Title)
 }
 
 func contains(s string, keywords []string) bool {

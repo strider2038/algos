@@ -26,7 +26,10 @@ func (t *Tree) FindByCode(code string) (*Node, bool) {
 }
 
 func (t *Tree) Filter(search string) []*Node {
-	keywords := parseKeywords(search, false)
+	keywords := parseKeywords(search, true)
+	if len(keywords) == 0 {
+		keywords = parseKeywords(search, false)
+	}
 
 	// для совпадения условий поиска необходимо, чтобы все группы
 	// ключевых слов совпали
@@ -50,11 +53,6 @@ func (t *Tree) Filter(search string) []*Node {
 		and = append(and, or)
 	}
 
-	// только стоп слова
-	if search != "" && len(keywords) == 0 {
-		return nil
-	}
-
 	nodes := make([]*Node, 0)
 	for _, node := range t.Nodes {
 		if node.matches(and) {
@@ -63,6 +61,16 @@ func (t *Tree) Filter(search string) []*Node {
 	}
 
 	return nodes
+}
+
+func (t *Tree) Bytes() int {
+	s := 0
+	for _, node := range t.Nodes {
+		s += node.bytes()
+	}
+	treeBytes, treeNodes := t.keywords.Size()
+
+	return s + treeBytes + treeNodes*8
 }
 
 func (t *Tree) newNode(code string, title string) *Node {
@@ -135,4 +143,13 @@ func (n *Node) containsOneOf(indices []int) bool {
 	}
 
 	return false
+}
+
+func (n *Node) bytes() int {
+	s := 0
+	for _, child := range n.Children {
+		s += child.bytes()
+	}
+
+	return s + len(n.Value.Code) + len(n.Value.Title) + len(n.indices)*8
 }

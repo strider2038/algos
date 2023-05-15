@@ -28,6 +28,7 @@ func TestTree_Filter(t *testing.T) {
 
 func BenchmarkTree_Filter(b *testing.B) {
 	tree := loadTree(b)
+	b.Log("size:", tree.Bytes()/1024, "Kb")
 
 	for _, bm := range testcases.SimpleCases {
 		b.Run(bm.Name, func(b *testing.B) {

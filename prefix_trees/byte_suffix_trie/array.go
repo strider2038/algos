@@ -196,6 +196,13 @@ func (array Array[V]) MarshalJSON() ([]byte, error) {
 	return data.Bytes(), nil
 }
 
+func (array Array[V]) Size() (bytes, nodes int) {
+	bytes, nodes = array.root.size()
+	bytes += 8 // count
+
+	return bytes, nodes
+}
+
 type arrayNode[V any] struct {
 	// Флаг наличия значения
 	present bool
@@ -305,6 +312,23 @@ func (node *arrayNode[V]) walk(key []byte, f func(key []byte, value V) error) er
 	}
 
 	return nil
+}
+
+func (node *arrayNode[V]) size() (bytes, nodes int) {
+	for _, child := range node.children {
+		b, n := child.size()
+		bytes += b
+		nodes += n
+	}
+
+	bytes += 1 + // present
+		1 + // k
+		len(node.suffix) + // suffix
+		len(node.bits)*8 // bits
+
+	nodes++
+
+	return bytes, nodes
 }
 
 func min(a, b int) int {

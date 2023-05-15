@@ -298,6 +298,8 @@ func BenchmarkArray64_Get(b *testing.B) {
 	for n, city := range cities {
 		t.Put([]byte(city), n+1)
 	}
+	size, _ := t.Size()
+	b.Log("size:", size/1024, "Kb")
 
 	b.ResetTimer()
 

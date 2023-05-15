@@ -8,6 +8,10 @@ type Case struct {
 
 var SimpleCases = []Case{
 	{
+		Name: "empty search",
+		Want: []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"},
+	},
+	{
 		Name:   "top node filter, single word",
 		Search: "рыболовство",
 		Want:   []string{"A"},
