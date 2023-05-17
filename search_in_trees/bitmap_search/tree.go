@@ -1,4 +1,4 @@
-package bitset_search
+package bitmap_search
 
 import (
 	"github.com/strider2038/algos/prefix_trees/byte_suffix_trie"
@@ -71,7 +71,10 @@ func (t *Tree) Bytes() int {
 }
 
 func (t *Tree) newNode(code string, title string) *Node {
-	node := &Node{Value: Classifier{Code: code, Title: title}}
+	node := &Node{
+		Value:   Classifier{Code: code, Title: title},
+		indices: map[int]uint64{},
+	}
 
 	keywords := parseKeywords(title, true)
 	index := t.keywords.Count() + 1
@@ -98,7 +101,7 @@ type Node struct {
 	Value    Classifier
 	Children []*Node
 
-	indices bitset
+	indices bitmap
 }
 
 func (n *Node) findByCode(code string) (*Node, bool) {

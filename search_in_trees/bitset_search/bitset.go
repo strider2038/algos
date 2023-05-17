@@ -20,23 +20,6 @@ func (b bitset) IsSet(n int) bool {
 	return b[i]&(1<<j) != 0
 }
 
-//
-//func (b bitset) And(with bitset) bitset {
-//	bits1 := b
-//	bits2 := with
-//
-//	if len(bits1) > len(bits2) {
-//		bits1, bits2 = bits2, bits1
-//	}
-//
-//	and := make(bitset, len(bits2))
-//	for i := 0; i < len(bits1); i++ {
-//		and[i] = bits1[i] & bits2[i]
-//	}
-//
-//	return and
-//}
-
 func (b bitset) Or(with bitset) bitset {
 	bits1 := b
 	bits2 := with
