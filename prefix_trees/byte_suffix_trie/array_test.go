@@ -162,6 +162,24 @@ func TestArray_MarshalJSON(t *testing.T) {
 	assert.JSONEq(t, `{"alpha":1,"beta":2,"delta":4,"gamma":3}`, string(data))
 }
 
+func TestArray_Walk_KeyModification(t *testing.T) {
+	items := byte_suffix_trie.Array[int]{}
+	items.Put([]byte("alpha"), 1)
+	items.Put([]byte("alpha2"), 2)
+	items.Put([]byte("alpha3"), 3)
+
+	walkItems := make([]string, 0)
+	_ = items.Walk(func(key []byte, value int) error {
+		walkItems = append(walkItems, string(key))
+		key[0] = byte('X')
+		key[1] = byte('Y')
+
+		return nil
+	})
+
+	assert.Equal(t, []string{"alpha", "alpha2", "alpha3"}, walkItems)
+}
+
 func TestArray_WalkPrefix(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -275,6 +293,108 @@ func TestArray_WalkPrefix_Random(t *testing.T) {
 			})
 
 			assert.Equal(t, want, got)
+		})
+	}
+}
+
+func TestArray_FindFirstByPrefix(t *testing.T) {
+	tests := []struct {
+		name      string
+		values    []string
+		prefix    string
+		wantKey   string
+		wantValue int
+	}{
+		{
+			name:   "not found",
+			values: []string{"capacity", "capitan", "bar"},
+			prefix: "foo",
+		},
+		{
+			name:      "existing prefix",
+			values:    []string{"capacity", "capitan", "bar"},
+			prefix:    "cap",
+			wantKey:   "capacity",
+			wantValue: 1,
+		},
+		{
+			name:      "existing prefix",
+			values:    []string{"capacity", "capitan", "bar"},
+			prefix:    "capac",
+			wantKey:   "capacity",
+			wantValue: 1,
+		},
+		{
+			name:      "equal to prefix",
+			values:    []string{"capacity", "capitan", "bar"},
+			prefix:    "capacity",
+			wantKey:   "capacity",
+			wantValue: 1,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tree := byte_suffix_trie.Array[int]{}
+			for i, value := range test.values {
+				tree.Put([]byte(value), i+1)
+			}
+
+			key, value, ok := tree.FindFirstByPrefix([]byte(test.prefix))
+
+			assert.Equal(t, test.wantKey, string(key))
+			assert.Equal(t, test.wantValue, value)
+			assert.Equal(t, test.wantValue != 0, ok)
+		})
+	}
+}
+
+func TestArray_FindLastByPrefix(t *testing.T) {
+	tests := []struct {
+		name      string
+		values    []string
+		prefix    string
+		wantKey   string
+		wantValue int
+	}{
+		{
+			name:   "not found",
+			values: []string{"capacity", "capitan", "bar"},
+			prefix: "foo",
+		},
+		{
+			name:      "existing prefix",
+			values:    []string{"capacity", "capitan", "bar"},
+			prefix:    "cap",
+			wantKey:   "capitan",
+			wantValue: 2,
+		},
+		{
+			name:      "existing prefix",
+			values:    []string{"capacity", "capitan", "bar"},
+			prefix:    "capac",
+			wantKey:   "capacity",
+			wantValue: 1,
+		},
+		{
+			name:      "equal to prefix",
+			values:    []string{"capacity", "capitan", "bar"},
+			prefix:    "capacity",
+			wantKey:   "capacity",
+			wantValue: 1,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tree := byte_suffix_trie.Array[int]{}
+			for i, value := range test.values {
+				tree.Put([]byte(value), i+1)
+			}
+
+			key, value, ok := tree.FindLastByPrefix([]byte(test.prefix))
+
+			assert.Equal(t, test.wantKey, string(key))
+			assert.Equal(t, test.wantValue, value)
+			assert.Equal(t, test.wantValue != 0, ok)
 		})
 	}
 }

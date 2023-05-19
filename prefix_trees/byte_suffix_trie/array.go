@@ -163,6 +163,62 @@ func (array *Array[V]) WalkPrefix(prefix []byte, f func(key []byte, value V) err
 	return node.walk(prefix[:i], f)
 }
 
+// FindFirstByPrefix находит первое значение по указанному префиксу
+// и возвращает ключ, значение и флаг true. Если не найдено,
+// то третьим параметром вернется false.
+func (array *Array[V]) FindFirstByPrefix(prefix []byte) ([]byte, V, bool) {
+	node := &array.root
+
+	i := 0
+	for ; i < len(prefix); i++ {
+		k := prefix[i]
+		// если индекс отсутствует в маске, то сверяем суффикс
+		if !node.bits.isSet(k) {
+			// если суффикс идентичен, то узел найден
+			if bytes.Equal(prefix[i:], node.suffix[:min(len(node.suffix), len(prefix)-i)]) {
+				break
+			}
+
+			// такого элемента нет в дереве
+			var zero V
+
+			return nil, zero, false
+		}
+		// по значению байта находим индекс следующего подузла дерева
+		node = node.child(k)
+	}
+
+	return node.findFirstByPrefix(prefix[:i])
+}
+
+// FindLastByPrefix находит последнее значение по указанному префиксу
+// и возвращает ключ, значение и флаг true. Если не найдено,
+// то третьим параметром вернется false.
+func (array *Array[V]) FindLastByPrefix(prefix []byte) ([]byte, V, bool) {
+	node := &array.root
+
+	i := 0
+	for ; i < len(prefix); i++ {
+		k := prefix[i]
+		// если индекс отсутствует в маске, то сверяем суффикс
+		if !node.bits.isSet(k) {
+			// если суффикс идентичен, то узел найден
+			if bytes.Equal(prefix[i:], node.suffix[:min(len(node.suffix), len(prefix)-i)]) {
+				break
+			}
+
+			// такого элемента нет в дереве
+			var zero V
+
+			return nil, zero, false
+		}
+		// по значению байта находим индекс следующего подузла дерева
+		node = node.child(k)
+	}
+
+	return node.findLastByPrefix(prefix[:i])
+}
+
 func (array Array[V]) MarshalJSON() ([]byte, error) {
 	var data bytes.Buffer
 	data.WriteRune('{')
@@ -299,7 +355,9 @@ func (node *arrayNode[V]) forkSuffix() {
 
 func (node *arrayNode[V]) walk(key []byte, f func(key []byte, value V) error) error {
 	if node.present {
-		if err := f(append(key, node.suffix...), node.value); err != nil {
+		keyCopy := make([]byte, 0, len(key)+len(node.suffix))
+		keyCopy = append(append(keyCopy, key...), node.suffix...)
+		if err := f(keyCopy, node.value); err != nil {
 			return err
 		}
 	}
@@ -312,6 +370,37 @@ func (node *arrayNode[V]) walk(key []byte, f func(key []byte, value V) error) er
 	}
 
 	return nil
+}
+
+func (node *arrayNode[V]) findFirstByPrefix(prefix []byte) ([]byte, V, bool) {
+	if node.present {
+		return append(prefix, node.suffix...), node.value, true
+	}
+	if len(node.children) > 0 {
+		k := append(prefix, node.children[0].k)
+
+		return node.children[0].findFirstByPrefix(k)
+	}
+
+	var zero V
+
+	return nil, zero, false
+}
+
+func (node *arrayNode[V]) findLastByPrefix(prefix []byte) ([]byte, V, bool) {
+	if node.present {
+		return append(prefix, node.suffix...), node.value, true
+	}
+	if len(node.children) > 0 {
+		i := len(node.children) - 1
+		k := append(prefix, node.children[i].k)
+
+		return node.children[i].findLastByPrefix(k)
+	}
+
+	var zero V
+
+	return nil, zero, false
 }
 
 func (node *arrayNode[V]) size() (bytes, nodes int) {
