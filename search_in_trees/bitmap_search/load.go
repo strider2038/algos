@@ -19,7 +19,7 @@ func LoadFromFile(filename string) (*Tree, error) {
 		return nil, fmt.Errorf("read from CSV: %w", err)
 	}
 
-	loader := treeLoader{rows: rows}
+	loader := newTreeLoader(rows)
 	loader.fill()
 	loader.tree.reindex()
 
@@ -27,46 +27,32 @@ func LoadFromFile(filename string) (*Tree, error) {
 }
 
 type treeLoader struct {
-	rows   [][]string
-	offset int
-	tree   Tree
+	rows [][]string
+	tree Tree
 }
 
-func (l *treeLoader) fill() {
-	for l.offset < len(l.rows) {
-		row := l.rows[l.offset]
-		if row[1] == "" {
-			node := l.tree.newNode(row[0], row[2])
-			l.tree.Nodes = append(l.tree.Nodes, node)
-			l.offset++
-			if l.offset >= len(l.rows) {
-				break
-			}
-			l.fillChildren(node)
-		}
+func newTreeLoader(rows [][]string) *treeLoader {
+	return &treeLoader{
+		rows: rows,
+		tree: newTree(len(rows)),
 	}
 }
 
-func (l *treeLoader) fillChildren(parent *Node) {
-	code := l.rows[l.offset][1]
+func (l *treeLoader) fill() {
+	nodes := make([]*Node, 0, len(l.rows))
 
-	for l.offset < len(l.rows) {
-		row := l.rows[l.offset]
-		if row[1] == "" {
-			return
-		}
-
+	for _, row := range l.rows {
 		node := l.tree.newNode(row[1], row[2])
-		parent.Children = append(parent.Children, node)
-		l.offset++
-		if l.offset >= len(l.rows) {
-			break
-		}
-		if len(l.rows[l.offset][1]) > len(code) {
-			l.fillChildren(node)
-		}
-		if len(l.rows[l.offset][1]) < len(code) {
-			break
+		nodes = append(nodes, node)
+		l.tree.nodesByCodes[node.Value.Code] = node
+	}
+
+	for i, row := range l.rows {
+		if row[0] == "" {
+			l.tree.Nodes = append(l.tree.Nodes, nodes[i])
+		} else {
+			parent := l.tree.nodesByCodes[row[0]]
+			parent.Children = append(parent.Children, nodes[i])
 		}
 	}
 }

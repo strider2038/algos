@@ -13,7 +13,14 @@ type Classifier struct {
 type Tree struct {
 	Nodes []*Node
 
-	keywords byte_suffix_trie.Array[int]
+	keywords     byte_suffix_trie.Array[int]
+	nodesByCodes map[string]*Node
+}
+
+func newTree(size int) Tree {
+	return Tree{
+		nodesByCodes: make(map[string]*Node, size),
+	}
 }
 
 func (t *Tree) FindByCode(code string) (*Node, bool) {

@@ -1,6 +1,7 @@
 package bitmap_search_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -11,7 +12,10 @@ import (
 )
 
 func TestTree_Filter(t *testing.T) {
-	tree := loadTree(t)
+	tree, err := loadTree("testdata/classifiers/okved.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for _, test := range testcases.PrefixCases {
 		t.Run(test.Name, func(t *testing.T) {
@@ -27,7 +31,10 @@ func TestTree_Filter(t *testing.T) {
 }
 
 func BenchmarkTree_Filter(b *testing.B) {
-	tree := loadTree(b)
+	tree, err := loadTree("testdata/classifiers/okved.csv")
+	if err != nil {
+		b.Fatal(err)
+	}
 	b.Log("size:", tree.Bytes()/1024, "Kb")
 
 	for _, bm := range testcases.PrefixCases {
@@ -40,12 +47,29 @@ func BenchmarkTree_Filter(b *testing.B) {
 	}
 }
 
-func loadTree(tb testing.TB) *bitmap_search.Tree {
-	_, filename, _, _ := runtime.Caller(0)
-	tree, err := bitmap_search.LoadFromFile(filepath.Dir(filename) + "/../../testdata/classifiers/okved.csv")
+func BenchmarkTree_Filter_BigDataSet(b *testing.B) {
+	tree, err := loadTree("var/ksr.csv")
 	if err != nil {
-		tb.Fatal("load okved:", err)
+		b.Skip(err)
+	}
+	b.Log("size:", tree.Bytes()/1024, "Kb")
+
+	for _, bm := range testcases.PrefixCases {
+		b.Run(bm.Name, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				tree.Filter(bm.Search)
+			}
+		})
+	}
+}
+
+func loadTree(dataFilename string) (*bitmap_search.Tree, error) {
+	_, goFilename, _, _ := runtime.Caller(0)
+	tree, err := bitmap_search.LoadFromFile(filepath.Dir(goFilename) + "/../../" + dataFilename)
+	if err != nil {
+		return nil, fmt.Errorf(`load classifiers from "%s": %w`, dataFilename, err)
 	}
 
-	return tree
+	return tree, nil
 }

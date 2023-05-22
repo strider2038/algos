@@ -22,7 +22,7 @@ func LoadFromFile(filename string) (*Tree, error) {
 	}
 
 	keywords := createOrderedKeywords(rows)
-	loader := treeLoader{rows: rows}
+	loader := newTreeLoader(rows)
 	loader.tree.keywords = keywords
 	if err := loader.fill(); err != nil {
 		return nil, err
@@ -33,59 +33,30 @@ func LoadFromFile(filename string) (*Tree, error) {
 }
 
 type treeLoader struct {
-	rows   [][]string
-	offset int
-	tree   Tree
+	rows [][]string
+	tree Tree
+}
+
+func newTreeLoader(rows [][]string) *treeLoader {
+	return &treeLoader{
+		rows: rows,
+		tree: newTree(len(rows)),
+	}
 }
 
 func (l *treeLoader) fill() error {
-	for l.offset < len(l.rows) {
-		row := l.rows[l.offset]
-		if row[1] == "" {
-			node, err := l.tree.newNode(row[0], row[2])
-			if err != nil {
-				return fmt.Errorf("error at %d (%s): %w", l.offset, row[0], err)
-			}
-			l.tree.Nodes = append(l.tree.Nodes, node)
-			l.offset++
-			if l.offset >= len(l.rows) {
-				break
-			}
-			if err := l.fillChildren(node); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (l *treeLoader) fillChildren(parent *Node) error {
-	code := l.rows[l.offset][1]
-
-	for l.offset < len(l.rows) {
-		row := l.rows[l.offset]
-		if row[1] == "" {
-			return nil
-		}
-
+	for i, row := range l.rows {
 		node, err := l.tree.newNode(row[1], row[2])
 		if err != nil {
-			return fmt.Errorf("error at %d (%s): %w", l.offset, row[1], err)
+			return fmt.Errorf("error at %d (%s): %w", i, row[1], err)
 		}
-		parent.Children = append(parent.Children, node)
-		l.offset++
-		if l.offset >= len(l.rows) {
-			break
+		if row[0] == "" {
+			l.tree.Nodes = append(l.tree.Nodes, node)
+		} else {
+			parent := l.tree.nodesByCodes[row[0]]
+			parent.Children = append(parent.Children, node)
 		}
-		if len(l.rows[l.offset][1]) > len(code) {
-			if err := l.fillChildren(node); err != nil {
-				return err
-			}
-		}
-		if len(l.rows[l.offset][1]) < len(code) {
-			break
-		}
+		l.tree.nodesByCodes[node.Value.Code] = node
 	}
 
 	return nil
