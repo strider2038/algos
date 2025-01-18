@@ -51,6 +51,11 @@ var SimpleCases = []Case{
 		Search: "вдруг",
 		Want:   []string{},
 	},
+	{
+		Name:   "case 1",
+		Search: "семян рапса",
+		Want:   []string{},
+	},
 }
 
 // PrefixCases - для префиксных алгоритмов некоторые тестовые кейсы отличаются от
